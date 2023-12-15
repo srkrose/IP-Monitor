@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /home/rlksvrlogs/scripts/dataset.sh
+source /home/sample/scripts/dataset.sh
 
 function dovecot_login() {
 	cat /var/log/exim_mainlog | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "dovecot_login" | grep "Incorrect authentication data" | awk '{for(i=1;i<=NF;i++) {if ($i==535) print $1,$(i-1),$7,$NF}}' | grep -v "127.0.0.1\|localhost" | sed 's/(//g;s/)//g;s/[][]//g;s/set_id=//' | awk -F'[: ]' '{printf "%-19s %-22s %-50s\n","DATE: "$1,"IP: "$2,"EMAIL: "$NF}' | sort | uniq -c | sort -k6 >>$temp/dovecotlogin_$time.txt
@@ -42,7 +42,7 @@ function check_log() {
 
 function sort_log() {
 	if [ -r $temp/failed-dovecot_$time.txt ] && [ -s $temp/failed-dovecot_$time.txt ]; then
-		sortlog=$(cat $temp/failed-dovecot_$time.txt | awk '{if($9!="LK" && $9!="AE" && $9!="GB" && $9!="") print}' | sort -k6)
+		sortlog=$(cat $temp/failed-dovecot_$time.txt | awk '{if($9!="") print}' | sort -k6)
 
 		if [[ ! -z $sortlog ]]; then
 			echo "$sortlog" >>$svrlogs/cphulk/iplist/failed-dovecot_$time.txt
