@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /home/rlksvrlogs/scripts/dataset.sh
+source /home/sample/scripts/dataset.sh
 
 function send_mail() {
 	ipmonitor=($(find $svrlogs/ipmonitor -type f -name "ipmonitor*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}'))
