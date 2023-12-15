@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /home/rlksvrlogs/scripts/dataset.sh
+source /home/sample/scripts/dataset.sh
 
 function cphulk_log() {
 	cat /usr/local/cpanel/logs/cphulkd.log | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "Login Blocked: IP reached maximum auth failures for a one day block" | awk -F'[= ]' '{for (i=0;i<NF;i++) {for (j=0;j<NF;j++) {if ($i=="[Remote" && $(i+1)=="IP" && $j=="[Authentication") print $1,$19,$(i+3),$(j+2),$(j+4)}}}' | sed 's/[][]//g' | awk '{printf "%-19s %-21s %-13s %-22s %-50s\n","DATE: "$1,"SERVICE: "$2,"DB: "$4,"IP: "$3,"USER: "$NF}' | sort | uniq -c | sort -k11 >>$temp/cphulklog_$time.txt
@@ -72,7 +72,7 @@ function mail_check() {
 
 function sort_log() {
 	if [ -r $temp/cptemp-block_$time.txt ] && [ -s $temp/cptemp-block_$time.txt ]; then
-		sortlog=$(cat $temp/cptemp-block_$time.txt | awk '{if($13!="LK" && $13!="") print}' | sort -k11)
+		sortlog=$(cat $temp/cptemp-block_$time.txt | awk '{if($13!="") print}' | sort -k11)
 
 		if [[ ! -z $sortlog ]]; then
 			echo "$sortlog" >>$svrlogs/cphulk/iplist/cptemp-block_$time.txt
