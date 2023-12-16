@@ -3,5 +3,6 @@ cphulk/block
 cphulk/iplist
 cphulk/unblock
 ipmonitor
+logs
 mail
 temp
