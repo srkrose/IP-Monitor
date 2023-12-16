@@ -31,7 +31,7 @@ function check_log() {
 		if [[ -z $search ]]; then
 			data=$(cat $temp/maillog_$time.txt | grep ${ips[i]})
 
-			whois=$(sh /home/rlksvrlogs/scripts/ipmonitor/iplookup.sh ${ips[i]})
+			whois=$(sh $scripts/ipmonitor/iplookup.sh ${ips[i]})
 
 			while IFS= read -r line; do
 				printf "%-120s %-10s\n" "$line" "ID: $whois" >>$temp/failed-mail_$time.txt
