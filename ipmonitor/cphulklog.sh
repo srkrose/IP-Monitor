@@ -35,7 +35,7 @@ function check_log() {
 		if [[ -z $search ]]; then
 			data=$(cat $temp/cphulklog_$time.txt | grep ${ips[i]})
 
-			whois=$(sh /home/rlksvrlogs/scripts/ipmonitor/iplookup.sh ${ips[i]})
+			whois=$(sh $scripts/ipmonitor/iplookup.sh ${ips[i]})
 
 			while IFS= read -r line; do
 				printf "%-140s %-10s\n" "$line" "ID: $whois" >>$temp/failed-cphulk_$time.txt
