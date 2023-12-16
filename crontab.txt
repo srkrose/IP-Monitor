@@ -1,0 +1,7 @@
+# Add cronjobs to /etc/crontab
+
+X X X X X sudo sh /home/rlksvrlogs/scripts/remove/rmvoldlogs.sh > /dev/null 2>&1
+X X X X X sudo sh /home/rlksvrlogs/scripts/remove/rmvtemp.sh > /dev/null 2>&1
+X X X X X sudo sh /home/rlksvrlogs/scripts/cphulk/rmvblacklistauto.sh > /dev/null 2>&1
+
+X X X X X sudo sh /home/rlksvrlogs/scripts/ipmonitor/ipmonitor.sh > /dev/null 2>&1
