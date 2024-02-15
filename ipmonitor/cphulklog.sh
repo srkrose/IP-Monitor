@@ -68,7 +68,7 @@ function mail_check() {
 
 function sort_log() {
 	if [ -r $temp/cptemp-block_$time.txt ] && [ -s $temp/cptemp-block_$time.txt ]; then
-		sortlog=$(cat $temp/cptemp-block_$time.txt | awk '{for (i=0;i<NF;i++) {if($i=="ID:" && $(i+1)!="LK" && $(i+1)!="") print}}' | sort -k11)
+		sortlog=$(cat $temp/cptemp-block_$time.txt | awk '{for (i=0;i<NF;i++) {if($i=="ID:" && $(i+1)!="") print}}' | sort -k11)
 
 		if [[ ! -z $sortlog ]]; then
 			echo "$sortlog" >>$svrlogs/cphulk/iplist/cptemp-block_$time.txt
