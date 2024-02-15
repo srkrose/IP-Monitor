@@ -4,113 +4,18 @@ source /home/sample/scripts/dataset.sh
 
 input=$1
 
-function check_input() {
+function check_iplist() {
+	ipblacklist=$(find $svrlogs/cphulk/iplist -type f -name "$input*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}')
 
-	if [[ $input == "failed-dovecot" ]]; then
-		dovecot_blacklist
-	
-	elif [[ $input == "failed-smtphost" ]]; then
-		smtphost_blacklist
-
-	elif [[ $input == "failed-ftpd" ]]; then
-		ftpd_blacklist
-
-	elif [[ $input == "failed-ssh" ]]; then
-		ssh_blacklist
-
-	elif [[ $input == "fake-mail" ]]; then
-		mail_blacklist
-
-	elif [[ $input == "failed-attempt" ]]; then
-		login_blacklist
-
-	elif [[ $input == "cptemp-block" ]]; then
-		cphulk_blacklist
-
-	fi
-}
-
-function check_file() {
-	username=$(echo "$ipblacklist" | awk -F'/' '{print $NF}' | awk -F'_' '{print $1}')
-
-	if [[ $username == "failed-dovecot" ]]; then
-		filename="dovecotip"
-
-		ips=($(cat $ipblacklist | awk '{print $5}' | sort | uniq))
-
-	elif [[ $username == "failed-smtphost" ]]; then
-		filename="smtphostip"
-
-		ips=($(cat $ipblacklist | awk '{print $5}' | sort | uniq))
-
-	elif [[ $username == "failed-ftpd" ]]; then
-		filename="ftpdip"
-
-		ips=($(cat $ipblacklist | awk '{print $6}' | sort | uniq))
-
-	elif [[ $username == "failed-ssh" ]]; then
-		filename="sship"
-
-		ips=($(cat $ipblacklist | awk '{print $7}' | sort | uniq))
-
-	elif [[ $username == "fake-mail" ]]; then
-		filename="mailip"
-
-		ips=($(cat $ipblacklist | awk '{print $8}' | sort | uniq))
-
-	elif [[ $username == "failed-attempt" ]]; then
-		filename="loginip"
-
-		ips=($(cat $ipblacklist | awk '{print $9}' | sort | uniq))
-
-	elif [[ $username == "cptemp-block" ]]; then
-		filename="cphulkip"
-
-		ips=($(cat $ipblacklist | awk '{print $9}' | sort | uniq))
-	fi
-}
-
-function check_data() {
-	if [[ $username == "failed-dovecot" ]]; then
-		line=$(cat $ipblacklist | grep ${ips[i]} | head -1)
-		ip=${ips[i]}
-		comment=$(echo "$line" | awk '{print $7" "$9}')
-
-	elif [[ $username == "failed-smtphost" ]]; then
-		line=$(cat $ipblacklist | grep ${ips[i]} | head -1)
-		ip=${ips[i]}
-		comment=$(echo "$line" | awk '{print $7" "$9}')
-
-	elif [[ $username == "failed-ftpd" ]]; then
-		line=$(cat $ipblacklist | grep ${ips[i]} | head -1)
-		ip=${ips[i]}
-		comment=$(echo "$line" | awk '{print $8" "$10}')
-
-	elif [[ $username == "failed-ssh" ]]; then
-		line=$(cat $ipblacklist | grep ${ips[i]} | head -1)
-		ip=${ips[i]}
-		comment=$(echo "$line" | awk '{print $9" "$14}')
-
-	elif [[ $username == "fake-mail" ]]; then
-		line=$(cat $ipblacklist | grep ${ips[i]} | head -1)
-		ip=${ips[i]}
-		comment=$(echo "$line" | awk '{print $10" "$12}')
-
-	elif [[ $username == "failed-attempt" ]]; then
-		line=$(cat $ipblacklist | grep ${ips[i]} | head -1)
-		ip=${ips[i]}
-		comment=$(echo "$line" | awk '{print $11" "$13}')
-
-	elif [[ $username == "cptemp-block" ]]; then
-		line=$(cat $ipblacklist | grep ${ips[i]} | head -1)
-		ip=${ips[i]}
-		comment=$(echo "$line" | awk '{print $11" "$13}')
+	if [ ! -z $ipblacklist ]; then
+		ip_blacklist
 	fi
 }
 
 function ip_blacklist() {
+	username=$(echo "$ipblacklist" | awk -F'/' '{print $NF}' | awk -F'_' '{print $1}')
 
-	check_file
+	ips=($(cat $ipblacklist | awk '{for (i=0;i<NF;i++) {if($i=="IP:") print $(i+1)}}' | sort | uniq))
 
 	ipcount=${#ips[@]}
 
@@ -137,60 +42,42 @@ function ip_blacklist() {
 	echo "" >>$svrlogs/cphulk/block/$filename-blacklisted_$time.txt
 }
 
-function dovecot_blacklist() {
-	ipblacklist=$(find $svrlogs/cphulk/iplist -type f -name "failed-dovecot*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}')
+function check_data() {
+	line=$(cat $ipblacklist | grep ${ips[i]} | head -1)
+	ip=${ips[i]}
+	ccode=$(echo "$line" | awk '{for (i=0;i<NF;i++) {if($i=="ID:") print $(i+1)}}')
 
-	if [ ! -z $ipblacklist ]; then
-		ip_blacklist
+	if [[ $username == "failed-smtphost" ]]; then
+		condata=$(echo "$line" | awk -F'SMTPHOST: | ID:' '/SMTPHOST:/ {print $2}' | sed 's/^[[:space:]]*//')
+		filename="smtphostip"
+
+	elif [[ $username == "failed-ftpd" ]]; then
+		condata=$(echo "$line" | awk -F'USER: | ID:' '/USER:/ {print $2}' | sed 's/^[[:space:]]*//')
+		filename="ftpdip"
+
+	elif [[ $username == "failed-ssh" ]]; then
+		condata=$(echo "$line" | awk -F'PORT: | TYPE:' '/PORT:/ {print $2}' | sed 's/^[[:space:]]*//')
+		filename="sship"
+
+	elif [[ $username == "failed-dovecot" ]]; then
+		condata=$(echo "$line" | awk -F'EMAIL: | ID:' '/EMAIL:/ {print $2}' | sed 's/^[[:space:]]*//')
+		filename="dovecotip"
+
+	elif [[ $username == "cptemp-block" ]]; then
+		condata=$(echo "$line" | awk -F'USER: | ID:' '/USER:/ {print $2}' | sed 's/^[[:space:]]*//')
+		filename="cphulkip"
+
+	elif [[ $username == "fake-mail" ]]; then
+		condata=$(echo "$line" | awk -F'USER: | ID:' '/USER:/ {print $2}' | sed 's/^[[:space:]]*//')
+		filename="mailip"
+
+	elif [[ $username == "failed-attempt" ]]; then
+		condata=$(echo "$line" | awk -F'USER: | ID:' '/USER:/ {print $2}' | sed 's/^[[:space:]]*//')
+		filename="loginip"
+
 	fi
+
+	comment=$(echo "$condata $ccode")
 }
 
-function smtphost_blacklist() {
-	ipblacklist=$(find $svrlogs/cphulk/iplist -type f -name "failed-smtphost*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}')
-
-	if [ ! -z $ipblacklist ]; then
-		ip_blacklist
-	fi
-}
-
-function ftpd_blacklist() {
-	ipblacklist=$(find $svrlogs/cphulk/iplist -type f -name "failed-ftpd*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}')
-
-	if [ ! -z $ipblacklist ]; then
-		ip_blacklist
-	fi
-}
-
-function ssh_blacklist() {
-	ipblacklist=$(find $svrlogs/cphulk/iplist -type f -name "failed-ssh*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}')
-
-	if [ ! -z $ipblacklist ]; then
-		ip_blacklist
-	fi
-}
-
-function mail_blacklist() {
-	ipblacklist=$(find $svrlogs/cphulk/iplist -type f -name "fake-mail*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}')
-
-	if [ ! -z $ipblacklist ]; then
-		ip_blacklist
-	fi
-}
-
-function login_blacklist() {
-	ipblacklist=$(find $svrlogs/cphulk/iplist -type f -name "failed-attempt*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}')
-
-	if [ ! -z $ipblacklist ]; then
-		ip_blacklist
-	fi
-}
-
-function cphulk_blacklist() {
-	ipblacklist=$(find $svrlogs/cphulk/iplist -type f -name "cptemp-block*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}')
-
-	if [ ! -z $ipblacklist ]; then
-		ip_blacklist
-	fi
-}
-
-check_input
+check_iplist
