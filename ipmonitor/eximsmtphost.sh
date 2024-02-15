@@ -3,7 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function smtphost_login() {
-	cat /var/log/exim_mainlog | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "no host name found for IP address" | grep -v "127.0.0.1\|localhost" | awk '{printf "%-19s %-22s %-31s\n","DATE: "$1,"IP: "$NF,"SMTPHOST: no_host_name_found"}' | sort | uniq -c | sort -nr >>$temp/nosmtphost_$time.txt
+	cat /var/log/exim_mainlog | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "no host name found for IP address" | grep -v "127.0.0.1\|localhost" | awk '{printf "%-19s %-17s %-22s %-31s\n","DATE: "$1,"TIME: "$2,"IP: "$NF,"SMTPHOST: no_host_name_found"}' | sort | uniq -c >>$temp/nosmtphost_$time.txt
 }
 
 function static_ip() {
@@ -11,7 +11,7 @@ function static_ip() {
 		staticip=($(cat $scripts/ipmonitor/staticip.txt))
 		scount=${#staticip[@]}
 
-		iplist=$(cat $temp/nosmtphost_$time.txt | awk '{print $5}' | sort | uniq)
+		iplist=$(cat $temp/nosmtphost_$time.txt | awk '{print $7}' | sort | uniq)
 
 		for ((i = 0; i < scount; i++)); do
 			iplist=$(echo "$iplist" | grep -v "${staticip[i]}")
@@ -34,7 +34,7 @@ function check_log() {
 			whois=$(sh $scripts/ipmonitor/iplookup.sh ${ips[i]})
 
 			while IFS= read -r line; do
-				printf "%-80s %-10s\n" "$line" "ID: $whois" >>$temp/failed-smtphost_$time.txt
+				printf "%-90s %-10s\n" "$line" "ID: $whois" >>$temp/failed-smtphost_$time.txt
 			done <<<"$data"
 		fi
 	done
@@ -42,7 +42,7 @@ function check_log() {
 
 function sort_log() {
 	if [ -r $temp/failed-smtphost_$time.txt ] && [ -s $temp/failed-smtphost_$time.txt ]; then
-		sortlog=$(cat $temp/failed-smtphost_$time.txt | awk '{if($9!="") print}' | sort -nr)
+		sortlog=$(cat $temp/failed-smtphost_$time.txt | awk '{for (i=0;i<NF;i++) {if($i=="ID:" && $(i+1)!="") print}}' | sort -nr)
 
 		if [[ ! -z $sortlog ]]; then
 			echo "$sortlog" >>$svrlogs/cphulk/iplist/failed-smtphost_$time.txt
@@ -62,14 +62,14 @@ function summary() {
 	if [ ! -z $nosmtphost ]; then
 		count=$(wc -l $nosmtphost | awk '{print $1}')
 
-		uniqipcount=$(cat $nosmtphost | awk '{print $5}' | sort | uniq | wc -l)
+		uniqipcount=$(cat $nosmtphost | awk '{print $7}' | sort | uniq | wc -l)
 
 		failedsmtphost=($(find $temp -type f -name "failed-smtphost*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}'))
 
 		if [ ! -z $failedsmtphost ]; then
 			newcount=$(wc -l $failedsmtphost | awk '{print $1}')
 
-			newuniqip=$(cat $failedsmtphost | awk '{print $5}' | sort | uniq | wc -l)
+			newuniqip=$(cat $failedsmtphost | awk '{print $7}' | sort | uniq | wc -l)
 
 			blacklist=($(find $svrlogs/cphulk/block -type f -name "smtphostip-blacklisted*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}'))
 
