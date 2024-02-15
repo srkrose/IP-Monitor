@@ -3,11 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function cphulk_log() {
-	cat /usr/local/cpanel/logs/cphulkd.log | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "Login Blocked: IP reached maximum auth failures for a one day block" | awk -F'[= ]' '{for (i=0;i<NF;i++) {for (j=0;j<NF;j++) {if ($i=="[Remote" && $(i+1)=="IP" && $j=="[Authentication") print $1,$19,$(i+3),$(j+2),$(j+4)}}}' | sed 's/[][]//g' | awk '{printf "%-19s %-21s %-13s %-22s %-50s\n","DATE: "$1,"SERVICE: "$2,"DB: "$4,"IP: "$3,"USER: "$NF}' | sort | uniq -c | sort -k11 >>$temp/cphulklog_$time.txt
-
-	cat /usr/local/cpanel/logs/cphulkd.log | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "Login Blocked: IP reached maximum auth failures" | grep -v "for a one day block" | awk -F'[= ]' '{for (i=0;i<NF;i++) {for (j=0;j<NF;j++) {if ($i=="[Remote" && $(i+1)=="IP" && $j=="[Authentication") print $1,$14,$(i+3),$(j+2),$(j+4)}}}' | sed 's/[][]//g' | awk '{printf "%-19s %-21s %-13s %-22s %-50s\n","DATE: "$1,"SERVICE: "$2,"DB: "$4,"IP: "$3,"USER: "$NF}' | sort | uniq -c | sort -k11 >>$temp/cphulklog_$time.txt
-
-	cat /usr/local/cpanel/logs/cphulkd.log | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "Login Blocked: The IP address is marked as an excessive brute." | awk -F'[= ]' '{print $1,$18,$29,$35,$37}' | sed 's/[][]//g' | awk '{printf "%-19s %-21s %-13s %-22s %-50s\n","DATE: "$1,"SERVICE: "$2,"DB: "$4,"IP: "$3,"USER: "$NF}' | sort | uniq -c | sort -k11 >>$temp/cphulklog_$time.txt
+	cat /usr/local/cpanel/logs/cphulkd.log | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | awk -F'[= ]' '{for (i=0;i<NF;i++) {for (j=0;j<NF;j++) {for (k=0;k<NF;k++) {if ($i=="[Service]" && $j=="[Remote" && $(j+1)=="IP" && $k=="[Username]") print $1,$2,$(i+1),$(j+3),$(k+1)}}}}' | sed 's/[][]//g' | awk '{printf "%-19s %-17s %-21s %-22s %-50s\n","DATE: "$1,"TIME: "$2,"SERVICE: "$3,"IP: "$4,"USER: "$NF}' | sort | uniq -c >>$temp/cphulklog_$time.txt
 }
 
 function static_ip() {
@@ -72,7 +68,7 @@ function mail_check() {
 
 function sort_log() {
 	if [ -r $temp/cptemp-block_$time.txt ] && [ -s $temp/cptemp-block_$time.txt ]; then
-		sortlog=$(cat $temp/cptemp-block_$time.txt | awk '{if($13!="") print}' | sort -k11)
+		sortlog=$(cat $temp/cptemp-block_$time.txt | awk '{for (i=0;i<NF;i++) {if($i=="ID:" && $(i+1)!="LK" && $(i+1)!="") print}}' | sort -k11)
 
 		if [[ ! -z $sortlog ]]; then
 			echo "$sortlog" >>$svrlogs/cphulk/iplist/cptemp-block_$time.txt
