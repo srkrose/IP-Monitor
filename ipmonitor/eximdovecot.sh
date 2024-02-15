@@ -3,7 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function dovecot_login() {
-	cat /var/log/exim_mainlog | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "dovecot_login" | grep "Incorrect authentication data" | awk '{for(i=1;i<=NF;i++) {if ($i==535) print $1,$(i-1),$7,$NF}}' | grep -v "127.0.0.1\|localhost" | sed 's/(//g;s/)//g;s/[][]//g;s/set_id=//' | awk -F'[: ]' '{printf "%-19s %-22s %-50s\n","DATE: "$1,"IP: "$2,"EMAIL: "$NF}' | sort | uniq -c | sort -k6 >>$temp/dovecotlogin_$time.txt
+	cat /var/log/exim_mainlog | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "Incorrect authentication data" | awk '{for(i=1;i<=NF;i++) {for(j=1;j<=NF;j++) {if($i==535 && $j~/set_id=/) print $1,$2,$3,$(i-1),$j}}}' | grep -v "127.0.0.1\|localhost" | sed 's/(//g;s/)//g;s/[][]//g;s/set_id=//' | awk '{gsub(/:.*/,"",$4)}1' | awk '{printf "%-19s %-17s %-22s %-22s %-50s\n","DATE: "$1,"TIME: "$2,"TYPE: "$3,"IP: "$4,"EMAIL: "$NF}' | sort | uniq -c >>$temp/dovecotlogin_$time.txt
 }
 
 function static_ip() {
@@ -11,7 +11,7 @@ function static_ip() {
 		staticip=($(cat $scripts/ipmonitor/staticip.txt))
 		scount=${#staticip[@]}
 
-		iplist=$(cat $temp/dovecotlogin_$time.txt | awk '{print $5}' | sort | uniq)
+		iplist=$(cat $temp/dovecotlogin_$time.txt | awk '{print $9}' | sort | uniq)
 
 		for ((i = 0; i < scount; i++)); do
 			iplist=$(echo "$iplist" | grep -v "${staticip[i]}")
@@ -34,7 +34,7 @@ function check_log() {
 			whois=$(sh $scripts/ipmonitor/iplookup.sh ${ips[i]})
 
 			while IFS= read -r line; do
-				printf "%-100s %-10s\n" "$line" "ID: $whois" >>$temp/failed-dovecot_$time.txt
+				printf "%-140s %-10s\n" "$line" "ID: $whois" >>$temp/failed-dovecot_$time.txt
 			done <<<"$data"
 		fi
 	done
@@ -42,7 +42,7 @@ function check_log() {
 
 function sort_log() {
 	if [ -r $temp/failed-dovecot_$time.txt ] && [ -s $temp/failed-dovecot_$time.txt ]; then
-		sortlog=$(cat $temp/failed-dovecot_$time.txt | awk '{if($9!="") print}' | sort -k6)
+		sortlog=$(cat $temp/failed-dovecot_$time.txt | awk '{for (i=0;i<NF;i++) {if($i=="ID:" && $(i+1)!="") print}}' | sort -k6)
 
 		if [[ ! -z $sortlog ]]; then
 			echo "$sortlog" >>$svrlogs/cphulk/iplist/failed-dovecot_$time.txt
@@ -62,14 +62,14 @@ function summary() {
 	if [ ! -z $dovecotlogin ]; then
 		count=$(wc -l $dovecotlogin | awk '{print $1}')
 
-		uniqipcount=$(cat $dovecotlogin | awk '{print $5}' | sort | uniq | wc -l)
+		uniqipcount=$(cat $dovecotlogin | awk '{print $9}' | sort | uniq | wc -l)
 
 		faileddovecot=($(find $temp -type f -name "failed-dovecot*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}'))
 
 		if [ ! -z $faileddovecot ]; then
 			newcount=$(wc -l $faileddovecot | awk '{print $1}')
 
-			newuniqip=$(cat $faileddovecot | awk '{print $5}' | sort | uniq | wc -l)
+			newuniqip=$(cat $faileddovecot | awk '{print $9}' | sort | uniq | wc -l)
 
 			blacklist=($(find $svrlogs/cphulk/block -type f -name "dovecotip-blacklisted*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}'))
 
