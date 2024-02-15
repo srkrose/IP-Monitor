@@ -3,7 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function login_log() {
-	cat /usr/local/cpanel/logs/login_log | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "FAILED LOGIN" | awk '{print $1,$5,$6,$8,$9}' | sed 's/[][]//g;s/"//' | awk '{printf "%-19s %-20s %-13s %-22s %-50s\n","DATE: "$1,"LOGIN: "$2,"TYPE: "$5,"IP: "$3,"USER: "$4}' | sort | uniq -c | sort -k11 >>$temp/loginfail_$time.txt
+	cat /usr/local/cpanel/logs/login_log | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "FAILED LOGIN" | awk '{print $1,$2,$5,$6,$8,$9}' | sed 's/[][]//g;s/"//' | awk '{printf "%-19s %-17s %-19s %-13s %-22s %-50s\n","DATE: "$1,"TIME: "$2,"LOGIN: "$3,"TYPE: "$6,"IP: "$4,"USER: "$5}' | sort | uniq -c >>$temp/loginfail_$time.txt
 }
 
 function static_ip() {
@@ -11,7 +11,7 @@ function static_ip() {
 		staticip=($(cat $scripts/ipmonitor/staticip.txt))
 		scount=${#staticip[@]}
 
-		iplist=$(cat $temp/loginfail_$time.txt | awk '{print $9}' | sort | uniq)
+		iplist=$(cat $temp/loginfail_$time.txt | awk '{print $11}' | sort | uniq)
 
 		for ((i = 0; i < scount; i++)); do
 			iplist=$(echo "$iplist" | grep -v "${staticip[i]}")
@@ -34,7 +34,7 @@ function check_log() {
 			whois=$(sh $scripts/ipmonitor/iplookup.sh ${ips[i]})
 
 			while IFS= read -r line; do
-				printf "%-140s %-10s\n" "$line" "ID: $whois" >>$temp/failed-login_$time.txt
+				printf "%-150s %-10s\n" "$line" "ID: $whois" >>$temp/failed-login_$time.txt
 			done <<<"$data"
 		fi
 	done
@@ -68,7 +68,7 @@ function mail_check() {
 
 function sort_log() {
 	if [ -r $temp/failed-attempt_$time.txt ] && [ -s $temp/failed-attempt_$time.txt ]; then
-		sortlog=$(cat $temp/failed-attempt_$time.txt | awk '{if($13!="") print}' | sort -k11)
+		sortlog=$(cat $temp/failed-attempt_$time.txt | awk '{for (i=0;i<NF;i++) {if($i=="ID:" && $(i+1)!="") print}}' | sort -k11)
 
 		if [[ ! -z $sortlog ]]; then
 			echo "$sortlog" >>$svrlogs/cphulk/iplist/failed-attempt_$time.txt
@@ -88,14 +88,14 @@ function summary() {
 	if [ ! -z $loginfail ]; then
 		count=$(wc -l $loginfail | awk '{print $1}')
 
-		uniqipcount=$(cat $loginfail | awk '{print $9}' | sort | uniq | wc -l)
+		uniqipcount=$(cat $loginfail | awk '{print $11}' | sort | uniq | wc -l)
 
 		failedlogin=($(find $temp -type f -name "failed-login*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}'))
 
 		if [ ! -z $failedlogin ]; then
 			newcount=$(wc -l $failedlogin | awk '{print $1}')
 
-			newuniqip=$(cat $failedlogin | awk '{print $9}' | sort | uniq | wc -l)
+			newuniqip=$(cat $failedlogin | awk '{print $11}' | sort | uniq | wc -l)
 
 			blacklist=($(find $svrlogs/cphulk/block -type f -name "loginip-blacklisted*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}'))
 
