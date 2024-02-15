@@ -3,7 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function mail_log() {
-	cat /var/log/maillog | grep -ie "$(if (($(date -d '1 hour ago' +"%-d") < 10)); then date -d '1 hour ago' +"%b  %-d %H:"; else date -d '1 hour ago' +"%b %d %H:"; fi)" | grep -ie "dovecot:" | grep -ie "imap-login:\|pop3-login:" | grep -ie "auth failed" | grep -iv "Inactivity\|user=<>" | awk '{$3="";$4="";print}' | awk -F',|:|[()]' '{for(i=1;i<=NF;i++) {for(j=1;j<=NF;j++) {if($i~/user=/ && $j~/rip=/) {printf "%-14s %-20s %-27s %-50s\n","DATE: "$1,"TYPE: "$2,"IP: "$j,"USER: "$i}}}}' | sed 's/dovecot//;s/user//;s/rip//;s/=//g;s/,//g;s/<//;s/>//' | sort | uniq -c | sort -k9 >>$temp/maillog_$time.txt
+	cat /var/log/maillog | grep -ie "$(if (($(date -d '1 hour ago' +"%-d") < 10)); then date -d '1 hour ago' +"%b  %-d %H:"; else date -d '1 hour ago' +"%b %d %H:"; fi)" | grep -ie "dovecot:" | grep -ie "imap-login:\|pop3-login:" | grep -ie "auth failed" | grep -iv "Inactivity\|user=<>" | awk '{for(i=1;i<=NF;i++) {for(j=1;j<=NF;j++) {if($i~/user=/ && $j~/rip=/) {print $1,$2,$3,$6,$j,$i}}}}' | sed 's/dovecot//;s/user//;s/rip//;s/=//g;s/,//g;s/<//;s/>//' | awk '{gsub(/:/,"",$4)}1' | awk '{printf "%-15s %-17s %-19s %-22s %-50s\n","DATE: "$1" "$2,"TIME: "$3, "TYPE: "$4,"IP: "$5,"USER: "$NF}' | sort | uniq -c >>$temp/maillog_$time.txt
 }
 
 function static_ip() {
@@ -11,7 +11,7 @@ function static_ip() {
 		staticip=($(cat $scripts/ipmonitor/staticip.txt))
 		scount=${#staticip[@]}
 
-		iplist=$(cat $temp/maillog_$time.txt | awk '{print $8}' | sort | uniq)
+		iplist=$(cat $temp/maillog_$time.txt | awk '{print $10}' | sort | uniq)
 
 		for ((i = 0; i < scount; i++)); do
 			iplist=$(echo "$iplist" | grep -v "${staticip[i]}")
@@ -34,7 +34,7 @@ function check_log() {
 			whois=$(sh $scripts/ipmonitor/iplookup.sh ${ips[i]})
 
 			while IFS= read -r line; do
-				printf "%-120s %-10s\n" "$line" "ID: $whois" >>$temp/failed-mail_$time.txt
+				printf "%-130s %-10s\n" "$line" "ID: $whois" >>$temp/failed-mail_$time.txt
 			done <<<"$data"
 		fi
 	done
@@ -68,7 +68,7 @@ function mail_check() {
 
 function sort_log() {
 	if [ -r $temp/fake-mail_$time.txt ] && [ -s $temp/fake-mail_$time.txt ]; then
-		sortlog=$(cat $temp/fake-mail_$time.txt | awk '{if($12!="") print}' | sort -k10)
+		sortlog=$(cat $temp/fake-mail_$time.txt | awk '{for (i=0;i<NF;i++) {if($i=="ID:" && $(i+1)!="") print}}' | sort -k10)
 
 		if [[ ! -z $sortlog ]]; then
 			echo "$sortlog" >>$svrlogs/cphulk/iplist/fake-mail_$time.txt
@@ -88,14 +88,14 @@ function summary() {
 	if [ ! -z $maillog ]; then
 		count=$(wc -l $maillog | awk '{print $1}')
 
-		uniqipcount=$(cat $maillog | awk '{print $8}' | sort | uniq | wc -l)
+		uniqipcount=$(cat $maillog | awk '{print $10}' | sort | uniq | wc -l)
 
 		failedmail=($(find $temp -type f -name "failed-mail*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}'))
 
 		if [ ! -z $failedmail ]; then
 			newcount=$(wc -l $failedmail | awk '{print $1}')
 
-			newuniqip=$(cat $failedmail | awk '{print $8}' | sort | uniq | wc -l)
+			newuniqip=$(cat $failedmail | awk '{print $10}' | sort | uniq | wc -l)
 
 			blacklist=($(find $svrlogs/cphulk/block -type f -name "mailip-blacklisted*" -exec ls -lat {} + | grep "$(date +"%F_%H:")" | head -1 | awk '{print $NF}'))
 
