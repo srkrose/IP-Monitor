@@ -3,7 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function login_log() {
-	cat /usr/local/cpanel/logs/login_log | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "FAILED LOGIN" | awk '{print $1,$2,$5,$6,$8,$9}' | sed 's/[][]//g;s/"//' | awk '{printf "%-19s %-17s %-19s %-13s %-22s %-50s\n","DATE: "$1,"TIME: "$2,"LOGIN: "$3,"TYPE: "$6,"IP: "$4,"USER: "$5}' | sort | uniq -c >>$temp/loginfail_$time.txt
+	cat /usr/local/cpanel/logs/login_log | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "FAILED LOGIN" | awk '{printf "%-19s %-17s %-19s %-13s %-22s %-50s\n","DATE: "$1,"TIME: "$2,"LOGIN: "$5,"TYPE: "$9,"IP: "$6,"USER: "$8}' | sed 's/[][]//g;s/"//g' | uniq -c >>$temp/loginfail_$time.txt
 }
 
 function static_ip() {
