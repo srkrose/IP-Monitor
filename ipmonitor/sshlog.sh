@@ -3,7 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function ssh_log() {
-	cat /var/log/secure | grep -ie "$(if (($(date -d '1 hour ago' +"%-d") < 10)); then date -d '1 hour ago' +"%b  %-d %H:"; else date -d '1 hour ago' +"%b %d %H:"; fi)" | grep -iv "pam_unix\|wp-toolkit\|127.0.0.1\|Bad protocol version\|sudo:" | grep "Invalid user\|Failed password for\|Did not receive identification string from\|Connection closed by" | awk '{for(i=1;i<=NF;i++) {if($i=="port") {if($6!="Did") printf "%-15s %-17s %-22s %-14s %-50s\n","DATE: "$1" "$2,"TIME: "$3,"IP: "$(i-1),"PORT: "$(i+1),"TYPE: "$6" "$7; else printf "%-15s %-17s %-22s %-14s %-50s\n","DATE: "$1" "$2,"TIME: "$3,"IP: "$(i-1),"PORT: "$(i+1),"TYPE: "$9" "$10}}}' | sort | uniq -c >>$temp/sshlog_$time.txt
+	cat /var/log/secure | grep -ie "$(if (($(date -d '1 hour ago' +"%-d") < 10)); then date -d '1 hour ago' +"%b  %-d %H:"; else date -d '1 hour ago' +"%b %d %H:"; fi)" | grep -iv "pam_unix\|wp-toolkit\|127.0.0.1\|Bad protocol version\|sudo:" | grep "Invalid user\|Failed password for invalid user\|Did not receive identification string from\|Connection closed by" | awk '{for(i=1;i<=NF;i++) {if($i=="port") {if($6!="Did") printf "%-15s %-17s %-22s %-14s %-50s\n","DATE: "$1" "$2,"TIME: "$3,"IP: "$(i-1),"PORT: "$(i+1),"TYPE: "$6" "$7; else printf "%-15s %-17s %-22s %-14s %-50s\n","DATE: "$1" "$2,"TIME: "$3,"IP: "$(i-1),"PORT: "$(i+1),"TYPE: "$9" "$10}}}' | uniq -c >>$temp/sshlog_$time.txt
 }
 
 function static_ip() {
