@@ -3,7 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function dovecot_login() {
-	cat /var/log/exim_mainlog | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "Incorrect authentication data" | awk '{for(i=1;i<=NF;i++) {for(j=1;j<=NF;j++) {if($i==535 && $j~/set_id=/) print $1,$2,$3,$(i-1),$j}}}' | grep -v "127.0.0.1\|localhost" | sed 's/(//g;s/)//g;s/[][]//g;s/set_id=//' | awk '{gsub(/:.*/,"",$4)}1' | awk '{printf "%-19s %-17s %-22s %-22s %-50s\n","DATE: "$1,"TIME: "$2,"TYPE: "$3,"IP: "$4,"EMAIL: "$NF}' | sort | uniq -c >>$temp/dovecotlogin_$time.txt
+	cat /var/log/exim_mainlog | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "Incorrect authentication data" | grep "set_id=" | grep -v "127.0.0.1\|localhost" | awk '{ip=""; email=""; for(i=1;i<=NF;i++) {if($i==535) {ip=$(i-1); gsub(/:.*/, "", ip); gsub(/\[|\]/, "", ip);} if($i~/set_id=/) { match($0, /\(set_id=[^)]*\)/); email=substr($0, RSTART+8, RLENGTH-9); gsub(/^ */, "", email);}} printf "%-19s %-17s %-22s %-22s %-50s\n","DATE: "$1,"TIME: "$2,"TYPE: "$3,"IP: "ip,"EMAIL: "email;}' | uniq -c >>$temp/dovecotlogin_$time.txt
 }
 
 function static_ip() {
