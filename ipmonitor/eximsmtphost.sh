@@ -3,7 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function smtphost_login() {
-	cat /var/log/exim_mainlog | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "no host name found for IP address" | grep -v "127.0.0.1\|localhost" | awk '{printf "%-19s %-17s %-22s %-31s\n","DATE: "$1,"TIME: "$2,"IP: "$NF,"SMTPHOST: no_host_name_found"}' | sort | uniq -c >>$temp/nosmtphost_$time.txt
+	cat /var/log/exim_mainlog | grep -ie "$(date -d '1 hour ago' +"%F %H:")" | grep "no host name found for IP address" | grep -v "127.0.0.1\|localhost" | awk '{printf "%-19s %-17s %-22s %-31s\n","DATE: "$1,"TIME: "$2,"IP: "$NF,"SMTPHOST: no_host_name_found"}' | uniq -c >>$temp/nosmtphost_$time.txt
 }
 
 function static_ip() {
