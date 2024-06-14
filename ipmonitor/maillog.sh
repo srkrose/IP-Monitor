@@ -3,7 +3,7 @@
 source /home/sample/scripts/dataset.sh
 
 function mail_log() {
-	cat /var/log/maillog | grep -ie "$(if (($(date -d '1 hour ago' +"%-d") < 10)); then date -d '1 hour ago' +"%b  %-d %H:"; else date -d '1 hour ago' +"%b %d %H:"; fi)" | grep -ie "dovecot:" | grep -ie "imap-login:\|pop3-login:" | grep -ie "auth failed" | grep -iv "Inactivity\|user=<>" | awk '{for(i=1;i<=NF;i++) {for(j=1;j<=NF;j++) {if($i~/user=/ && $j~/rip=/) {print $1,$2,$3,$6,$j,$i}}}}' | sed 's/dovecot//;s/user//;s/rip//;s/=//g;s/,//g;s/<//;s/>//' | awk '{gsub(/:/,"",$4)}1' | awk '{printf "%-15s %-17s %-19s %-22s %-50s\n","DATE: "$1" "$2,"TIME: "$3, "TYPE: "$4,"IP: "$5,"USER: "$NF}' | sort | uniq -c >>$temp/maillog_$time.txt
+	cat /var/log/maillog | grep -ie "$(if (($(date -d '1 hour ago' +"%-d") < 10)); then date -d '1 hour ago' +"%b  %-d %H:"; else date -d '1 hour ago' +"%b %d %H:"; fi)" | grep -i "dovecot:" | grep -i "imap-login:\|pop3-login:" | grep -i "auth failed" | grep -iv "Inactivity\|user=<>" | awk '{ip=""; user=""; for(i=1;i<=NF;i++) {if($i~/user=/) {match($0, /user=<[^>]*>/); user=substr($0, RSTART+6, RLENGTH-7); gsub(/^ */, "", user);} if($i~/rip=/) {ip=$i; gsub(/rip=/, "", ip); gsub(/,/, "", ip);} gsub(/:/, "", $6);} printf "%-15s %-17s %-19s %-22s %-50s\n","DATE: "$1" "$2,"TIME: "$3,"TYPE: "$6,"IP: "ip,"USER: "user;}' | uniq -c >>$temp/maillog_$time.txt
 }
 
 function static_ip() {
